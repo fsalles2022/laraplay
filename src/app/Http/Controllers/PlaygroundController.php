@@ -65,6 +65,9 @@ class PlaygroundController extends Controller
 
             // O eval é encapsulado em uma função anônima para isolar o escopo
             $wrapped = "return (function() {\n{$code}\n})();";
+            //Log::info('Executando código PHP: ' . $code);
+            Log::info("Snippet [{$request->title}]: " . $code);
+
             $result = eval($wrapped);
 
             $output = ob_get_clean();
