@@ -1,0 +1,20 @@
+DB::connection()->getDatabaseName();
+Q
+DB::connection()->getDatabaseName();
+DB::connection()->getDatabaseName();
+DB::connection()->getDatabaseName();
+DB::connection()->getDatabaseName();
+DB::connection()->getDatabaseName();
+C
+Q
+exit
+DB::connection()->getDatabaseName();
+use Illuminate\Support\Str;
+return Str::plural('user', 3);
+
+use Illuminate\Support\Str;
+return Str::plural('user', 3);
+
+Cclear
+clear
+exit

@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: ./docker/php
+    container_name: laraplay_app
+    volumes:
+      - ./src:/var/www
+    depends_on:
+      - mysql
+      - redis
+      - rabbitmq
+    networks:
+      - laraplay_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: laraplay_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./src:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - laraplay_network
+
+  mysql:
+    image: mysql:8.0
+    container_name: laraplay_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: laraplay
+      MYSQL_USER: laraplay
+      MYSQL_PASSWORD: secret
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - laraplay_network
+
+  redis:
+    image: redis:alpine
+    container_name: laraplay_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - laraplay_network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: laraplay_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - laraplay_network
+
+networks:
+  laraplay_network:
+
+volumes:
+  mysql_data:
