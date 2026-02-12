@@ -32,20 +32,9 @@ class PlaygroundController extends Controller
 
         $code = $request->code;
 
-        // 1. Bloqueio Robusto com Word Boundaries (\b)
         $blocked = [
-            'exec',
-            'shell_exec',
-            'system',
-            'passthru',
-            'proc_open',
-            'popen',
-            'unlink',
-            'artisan',
-            'mail',
-            'curl_exec',
-            'putenv',
-            'posix_kill'
+            'exec', 'shell_exec', 'system', 'passthru', 'proc_open', 'popen',
+            'unlink', 'artisan', 'mail', 'curl_exec', 'putenv', 'posix_kill'
         ];
 
         foreach ($blocked as $fn) {
@@ -55,7 +44,6 @@ class PlaygroundController extends Controller
             }
         }
 
-        // 2. Proteção contra acesso a dados sensíveis (.env / config)
         if (preg_match("/\b(env|config|app)\s*\(/i", $code)) {
             return back()->with('output', "❌ Segurança: Acesso a configurações do sistema negado.")->withInput();
         }
@@ -63,9 +51,7 @@ class PlaygroundController extends Controller
         try {
             ob_start();
 
-            // O eval é encapsulado em uma função anônima para isolar o escopo
             $wrapped = "return (function() {\n{$code}\n})();";
-            //Log::info('Executando código PHP: ' . $code);
             Log::info("Snippet [{$request->title}]: " . $code);
 
             $result = eval($wrapped);
@@ -73,7 +59,6 @@ class PlaygroundController extends Controller
             $output = ob_get_clean();
             $final = $this->formatResult($result, $output);
 
-            // 3. Salva no Histórico
             Snippet::create([
                 'title'   => $request->title ?? 'Untitled Snippet',
                 'tag'     => $request->tag ?? 'general',
@@ -103,30 +88,48 @@ class PlaygroundController extends Controller
     private function getExamples(): array
     {
         return [
-            'User Count'   => "return \\App\\Models\\User::count();",
-            'Latest User'  => "return \\App\\Models\\User::latest()->first();",
-            'Str Plural'   => "return \Illuminate\Support\Str::plural('car', 5);",
-            'Collection'   => "return collect([10, 20, 30])->avg();",
+            // Eloquent & DB
+            'User Count'     => "return \App\Models\User::count();",
+            'Last 5 Users'   => "return \App\Models\User::latest()->take(5)->get();",
+            'Find User #1'   => "return \App\Models\User::find(1);",
+            'DB Tables'      => "return \Illuminate\Support\Facades\DB::select('SHOW TABLES');",
+
+            // Strings (Str Helpers)
+            'Str Slug'       => "return \Illuminate\Support\Str::slug('Laravel Playground Pro');",
+            'Str Random'     => "return \Illuminate\Support\Str::random(16);",
+            'Str Mask'       => "return \Illuminate\Support\Str::mask('admin@email.com', '*', 3);",
+            'Str Plural'     => "return \Illuminate\Support\Str::plural('child', 10);",
+            'Str Markdown'   => "return \Illuminate\Support\Str::markdown('# Hello World');",
+
+            // Collections
+            'Coll Average'   => "return collect([10, 25, 45, 60])->avg();",
+            'Coll Filter'    => "return collect([1, 2, 3, 4, 5, 6])->filter(fn(\$n) => \$n > 3)->values();",
+            'Coll Map'       => "return collect(['laraplay', 'laravel'])->map(fn(\$s) => strtoupper(\$s));",
+
+            // Dates (Carbon)
+            'Now'            => "return now();",
+            'Next Sunday'    => "return now()->next('Sunday')->format('d/m/Y');",
+            'Diff For Humans'=> "return now()->subDays(5)->diffForHumans();",
+
+            // Logic & Math
+            'Simple Math'    => "return (150 * 0.15) + 20;",
+            'Array Sort'     => "\$arr = [10, 5, 2, 8];\nsort(\$arr);\nreturn \$arr;",
+            'JSON Encode'    => "return json_encode(['status' => 'success', 'data' => true]);",
+            'Check Email'    => "\$email = 'teste@teste.com';\nreturn filter_var(\$email, FILTER_VALIDATE_EMAIL);",
+            'Password Hash'  => "return \Illuminate\Support\Facades\Hash::make('secret123');",
         ];
     }
 
-    // Deletar Snippet
     public function destroy(Snippet $snippet)
     {
-        // Garante que o usuário só delete o que é dele
-        if ($snippet->user_id !== Auth::id()) {
-            abort(403);
-        }
-
+        if ($snippet->user_id !== Auth::id()) abort(403);
         $snippet->delete();
         return back()->with('output', '✅ Snippet removido com sucesso.');
     }
 
-    // Favoritar (Extra)
     public function toggleFavorite(Snippet $snippet)
     {
         if ($snippet->user_id !== Auth::id()) abort(403);
-
         $snippet->update(['favorite' => !$snippet->favorite]);
         return back();
     }
